@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>📱 SmsForwarder</title>
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --card: #1a1a2e;
+    --card-hover: #16213e;
+    --primary: #0f3460;
+    --accent: #e94560;
+    --accent2: #00d2ff;
+    --text: #eee;
+    --text2: #999;
+    --green: #00e676;
+    --border: #2a2a4a;
+    --radius: 16px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, 'SF Pro', 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 80px;
+  }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #0f3460 0%, #1a1a2e 100%);
+    padding: 20px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+  }
+  .header h1 { font-size: 20px; font-weight: 600; }
+  .header .status {
+    font-size: 12px;
+    color: var(--text2);
+    margin-top: 4px;
+  }
+  .header .status.online { color: var(--green); }
+
+  /* Config Bar */
+  .config-bar {
+    padding: 16px 20px;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+  }
+  .config-bar input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    margin-bottom: 8px;
+    outline: none;
+    transition: border 0.2s;
+  }
+  .config-bar input:focus { border-color: var(--accent2); }
+  .config-row { display: flex; gap: 8px; }
+  .config-row input { flex: 1; }
+  .btn-connect {
+    padding: 10px 20px;
+    background: linear-gradient(135deg, var(--accent) 0%, #c72c50 100%);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s;
+    white-space: nowrap;
+  }
+  .btn-connect:active { transform: scale(0.96); }
+
+  /* Tab Bar */
+  .tabs {
+    display: flex;
+    overflow-x: auto;
+    padding: 12px 16px;
+    gap: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    padding: 8px 16px;
+    border-radius: 20px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-size: 13px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tab.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  /* Content */
+  .content { padding: 16px; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* Cards */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+    transition: background 0.2s;
+  }
+  .card:active { background: var(--card-hover); }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .card-name { font-weight: 600; font-size: 15px; }
+  .card-time { font-size: 12px; color: var(--text2); }
+  .card-number { font-size: 13px; color: var(--accent2); margin-bottom: 6px; }
+  .card-content { font-size: 14px; color: var(--text); line-height: 1.5; }
+  .card-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-in { background: rgba(0,214,255,0.15); color: var(--accent2); }
+  .badge-out { background: rgba(233,69,96,0.15); color: var(--accent); }
+  .badge-missed { background: rgba(255,152,0,0.15); color: #ff9800; }
+
+  /* Send Form */
+  .send-form {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .form-group { margin-bottom: 16px; }
+  .form-label {
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 6px;
+    display: block;
+  }
+  .form-input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    outline: none;
+    transition: border 0.2s;
+  }
+  .form-input:focus { border-color: var(--accent2); }
+  textarea.form-input { resize: vertical; min-height: 100px; font-family: inherit; }
+  .sim-toggle {
+    display: flex;
+    gap: 8px;
+  }
+  .sim-btn {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg);
+    color: var(--text2);
+    font-size: 14px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .sim-btn.active {
+    background: var(--primary);
+    border-color: var(--accent2);
+    color: var(--accent2);
+  }
+  .btn-send {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #00d2ff 0%, #0f3460 100%);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.2s;
+  }
+  .btn-send:active { transform: scale(0.97); }
+  .btn-send:disabled { opacity: 0.5; }
+
+  /* Battery Widget */
+  .battery-widget {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    text-align: center;
+  }
+  .battery-level {
+    font-size: 48px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--green) 0%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .battery-info { margin-top: 12px; }
+  .battery-info span {
+    display: inline-block;
+    padding: 4px 12px;
+    margin: 4px;
+    background: var(--bg);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text2);
+  }
+
+  /* Device Info */
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .info-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .info-item .label { font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+  .info-item .value { font-size: 15px; font-weight: 600; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(0,0,0,0.9);
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-size: 14px;
+    z-index: 1000;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Loading */
+  .loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--text2);
+  }
+  .spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent2);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Empty State */
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text2);
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📱 SmsForwarder Remote</h1>
+  <div class="status" id="status">未连接</div>
+</div>
+
+<div class="config-bar" id="configBar">
+  <input type="url" id="serverUrl" placeholder="服务地址 https://smsf.of.ci" value="https://smsf.of.ci">
+  <div class="config-row">
+    <input type="password" id="signKey" placeholder="签名密钥">
+    <button class="btn-connect" onclick="connect()">连接</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="inbox">📥 收件箱</div>
+  <div class="tab" data-tab="sent">📤 已发送</div>
+  <div class="tab" data-tab="send">✏️ 发短信</div>
+  <div class="tab" data-tab="calls">📞 通话</div>
+  <div class="tab" data-tab="battery">🔋 电量</div>
+  <div class="tab" data-tab="device">⚙️ 设备</div>
+</div>
+
+<div class="content">
+  <!-- 收件箱 -->
+  <div class="section active" id="sec-inbox">
+    <div class="loading" id="inbox-loading"><div class="spinner"></div>加载中...</div>
+    <div id="inbox-list"></div>
+  </div>
+
+  <!-- 已发送 -->
+  <div class="section" id="sec-sent">
+    <div class="loading" id="sent-loading"><div class="spinner"></div>加载中...</div>
+    <div id="sent-list"></div>
+  </div>
+
+  <!-- 发短信 -->
+  <div class="section" id="sec-send">
+    <div class="send-form">
+      <div class="form-group">
+        <label class="form-label">SIM 卡</label>
+        <div class="sim-toggle">
+          <div class="sim-btn" data-sim="1" onclick="selectSim(1)">SIM 1</div>
+          <div class="sim-btn active" data-sim="2" onclick="selectSim(2)">SIM 2</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">收件号码</label>
+        <input type="tel" class="form-input" id="sendPhone" placeholder="手机号码，多个用分号分隔">
+      </div>
+      <div class="form-group">
+        <label class="form-label">短信内容</label>
+        <textarea class="form-input" id="sendContent" placeholder="输入短信内容..."></textarea>
+      </div>
+      <button class="btn-send" onclick="sendSms()" id="btnSend">发送短信</button>
+    </div>
+  </div>
+
+  <!-- 通话记录 -->
+  <div class="section" id="sec-calls">
+    <div class="loading" id="calls-loading"><div class="spinner"></div>加载中...</div>
+    <div id="calls-list"></div>
+  </div>
+
+  <!-- 电量 -->
+  <div class="section" id="sec-battery">
+    <div class="loading" id="battery-loading"><div class="spinner"></div>加载中...</div>
+    <div id="battery-info"></div>
+  </div>
+
+  <!-- 设备 -->
+  <div class="section" id="sec-device">
+    <div class="loading" id="device-loading"><div class="spinner"></div>加载中...</div>
+    <div id="device-info"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let serverUrl = '';
+let signKey = '';
+let selectedSim = 2;
+
+// ─── 签名 ───
+async function makeSign(timestamp) {
+  const str = timestamp + '\n' + signKey;
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw', encoder.encode(signKey), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(str));
+  const b64 = btoa(String.fromCharCode(...new Uint8Array(sig)));
+  return encodeURIComponent(b64);
+}
+
+async function apiRequest(uri, data = {}) {
+  const ts = Date.now();
+  const sign = signKey ? await makeSign(ts) : '';
+  const resp = await fetch(serverUrl + uri, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ data, timestamp: ts, sign })
+  });
+  return resp.json();
+}
+
+// ─── 连接 ───
+async function connect() {
+  serverUrl = document.getElementById('serverUrl').value.replace(/\/$/, '');
+  signKey = document.getElementById('signKey').value;
+  
+  try {
+    const r = await apiRequest('/config/query');
+    if (r.code === 200) {
+      document.getElementById('status').textContent = '✅ ' + (r.data.extra_device_mark || '已连接');
+      document.getElementById('status').className = 'status online';
+      localStorage.setItem('smsf_url', serverUrl);
+      localStorage.setItem('smsf_key', signKey);
+      // 更新 SIM 按钮显示运营商+号码
+      const sim1 = r.data.extra_sim1 || 'SIM 1';
+      const sim2 = r.data.extra_sim2 || 'SIM 2';
+      const formatSim = (s, fallback) => {
+        if (!s || s === fallback) return fallback;
+        // "中国移动_+8618888888888" → "移动 8888"
+        const parts = s.split('_');
+        const carrier = (parts[0] || '').replace('中国', '');
+        const num = (parts[1] || '').replace('+86', '');
+        const tail = num.slice(-4);
+        return carrier + (tail ? ' ' + tail : '');
+      };
+      document.querySelector('.sim-btn[data-sim="1"]').textContent = formatSim(sim1, 'SIM 1');
+      document.querySelector('.sim-btn[data-sim="2"]').textContent = formatSim(sim2, 'SIM 2');
+      toast('连接成功 ✅');
+      loadInbox();
+    } else {
+      toast('连接失败: ' + r.msg, true);
+    }
+  } catch (e) {
+    toast('连接失败: ' + e.message, true);
+  }
+}
+
+// ─── Tab 切换 ───
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    tab.classList.add('active');
+    const secId = 'sec-' + tab.dataset.tab;
+    document.getElementById(secId).classList.add('active');
+    
+    // Load data
+    const t = tab.dataset.tab;
+    if (t === 'inbox') loadInbox();
+    else if (t === 'sent') loadSent();
+    else if (t === 'calls') loadCalls();
+    else if (t === 'battery') loadBattery();
+    else if (t === 'device') loadDevice();
+  });
+});
+
+// ─── 收件箱 ───
+async function loadInbox() {
+  if (!serverUrl) return;
+  show('inbox-loading'); hide('inbox-list');
+  try {
+    const r = await apiRequest('/sms/query', { type: 1, page_num: 1, page_size: 20 });
+    hide('inbox-loading');
+    if (r.code === 200) {
+      renderSmsList('inbox-list', r.data || [], true);
+    }
+  } catch (e) { hide('inbox-loading'); toast('加载失败', true); }
+}
+
+// ─── 已发送 ───
+async function loadSent() {
+  if (!serverUrl) return;
+  show('sent-loading'); hide('sent-list');
+  try {
+    const r = await apiRequest('/sms/query', { type: 2, page_num: 1, page_size: 20 });
+    hide('sent-loading');
+    if (r.code === 200) {
+      renderSmsList('sent-list', r.data || [], false);
+    }
+  } catch (e) { hide('sent-loading'); toast('加载失败', true); }
+}
+
+function renderSmsList(containerId, messages, isInbox) {
+  const el = document.getElementById(containerId);
+  if (!messages.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div>暂无短信</div>';
+    show(containerId);
+    return;
+  }
+  el.innerHTML = messages.map(m => {
+    const d = new Date(m.date);
+    const time = `${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+    const badge = isInbox ? '<span class="card-badge badge-in">收</span>' : '<span class="card-badge badge-out">发</span>';
+    return `<div class="card">
+      <div class="card-header">
+        <span class="card-name">${badge} ${m.name || '未知'}</span>
+        <span class="card-time">${time}</span>
+      </div>
+      <div class="card-number">${m.number}</div>
+      <div class="card-content">${escHtml(m.content)}</div>
+    </div>`;
+  }).join('');
+  show(containerId);
+}
+
+// ─── 发短信 ───
+function selectSim(n) {
+  selectedSim = n;
+  document.querySelectorAll('.sim-btn').forEach(b => b.classList.toggle('active', +b.dataset.sim === n));
+}
+
+async function sendSms() {
+  const phone = document.getElementById('sendPhone').value.trim();
+  const content = document.getElementById('sendContent').value.trim();
+  if (!phone || !content) { toast('请填写号码和内容', true); return; }
+  
+  const btn = document.getElementById('btnSend');
+  btn.disabled = true; btn.textContent = '发送中...';
+  
+  try {
+    const r = await apiRequest('/sms/send', {
+      sim_slot: selectedSim,
+      phone_numbers: phone,
+      msg_content: content
+    });
+    if (r.code === 200) {
+      toast('短信已发送 ✅');
+      document.getElementById('sendContent').value = '';
+    } else {
+      toast('发送失败: ' + r.msg, true);
+    }
+  } catch (e) {
+    toast('发送失败: ' + e.message, true);
+  }
+  btn.disabled = false; btn.textContent = '发送短信';
+}
+
+// ─── 通话记录 ───
+async function loadCalls() {
+  if (!serverUrl) return;
+  show('calls-loading'); hide('calls-list');
+  try {
+    const r = await apiRequest('/call/query', { type: 0, page_num: 1, page_size: 20 });
+    hide('calls-loading');
+    if (r.code === 200) {
+      const calls = r.data || [];
+      const el = document.getElementById('calls-list');
+      if (!calls.length) {
+        el.innerHTML = '<div class="empty"><div class="empty-icon">📞</div>暂无通话记录</div>';
+        show('calls-list'); return;
+      }
+      const typeMap = { 1: ['📲 来电', 'badge-in'], 2: ['📱 去电', 'badge-out'], 3: ['❌ 未接', 'badge-missed'] };
+      el.innerHTML = calls.map(c => {
+        const d = new Date(c.dateLong);
+        const time = `${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+        const [label, cls] = typeMap[c.type] || ['📞 通话', 'badge-in'];
+        const mins = Math.floor(c.duration / 60);
+        const secs = c.duration % 60;
+        return `<div class="card">
+          <div class="card-header">
+            <span class="card-name"><span class="card-badge ${cls}">${label}</span> ${c.number}</span>
+            <span class="card-time">${time}</span>
+          </div>
+          <div class="card-content">通话时长: ${mins}分${secs}秒</div>
+        </div>`;
+      }).join('');
+      show('calls-list');
+    }
+  } catch (e) { hide('calls-loading'); toast('加载失败', true); }
+}
+
+// ─── 电量 ───
+async function loadBattery() {
+  if (!serverUrl) return;
+  show('battery-loading'); hide('battery-info');
+  try {
+    const r = await apiRequest('/battery/query');
+    hide('battery-loading');
+    if (r.code === 200) {
+      const d = r.data;
+      const isCharging = (d.status || '').includes('充电');
+      document.getElementById('battery-info').innerHTML = `
+        <div class="battery-widget">
+          <div class="battery-level">${isCharging ? '⚡' : '🔋'} ${d.level || '?'}</div>
+          <div class="battery-info">
+            <span>${d.status || '未知'}</span>
+            <span>${d.health || '未知'}</span>
+            <span>${d.plugged || '未插电'}</span>
+          </div>
+        </div>`;
+      show('battery-info');
+    }
+  } catch (e) { hide('battery-loading'); toast('加载失败', true); }
+}
+
+// ─── 设备信息 ───
+async function loadDevice() {
+  if (!serverUrl) return;
+  show('device-loading'); hide('device-info');
+  try {
+    const r = await apiRequest('/config/query');
+    hide('device-loading');
+    if (r.code === 200) {
+      const d = r.data;
+      document.getElementById('device-info').innerHTML = `
+        <div class="info-grid">
+          <div class="info-item"><div class="label">设备</div><div class="value">${d.extra_device_mark || '?'}</div></div>
+          <div class="info-item"><div class="label">SIM 1</div><div class="value">${(d.extra_sim1 || '无').split('_').pop()}</div></div>
+          <div class="info-item"><div class="label">SIM 2</div><div class="value">${(d.extra_sim2 || '无').split('_').pop()}</div></div>
+          <div class="info-item"><div class="label">远程发短信</div><div class="value">${d.enable_api_sms_send ? '✅' : '❌'}</div></div>
+          <div class="info-item"><div class="label">远程查短信</div><div class="value">${d.enable_api_sms_query ? '✅' : '❌'}</div></div>
+          <div class="info-item"><div class="label">远程查通话</div><div class="value">${d.enable_api_call_query ? '✅' : '❌'}</div></div>
+          <div class="info-item"><div class="label">远程查通讯录</div><div class="value">${d.enable_api_contact_query ? '✅' : '❌'}</div></div>
+          <div class="info-item"><div class="label">远程查电量</div><div class="value">${d.enable_api_battery_query ? '✅' : '❌'}</div></div>
+        </div>`;
+      show('device-info');
+    }
+  } catch (e) { hide('device-loading'); toast('加载失败', true); }
+}
+
+// ─── Utils ───
+function show(id) { document.getElementById(id).style.display = ''; }
+function hide(id) { document.getElementById(id).style.display = 'none'; }
+function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function toast(msg, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = isError ? 'rgba(233,69,96,0.95)' : 'rgba(0,0,0,0.9)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ─── Init ───
+window.addEventListener('load', () => {
+  const savedUrl = localStorage.getItem('smsf_url');
+  const savedKey = localStorage.getItem('smsf_key');
+  if (savedUrl) document.getElementById('serverUrl').value = savedUrl;
+  if (savedKey) document.getElementById('signKey').value = savedKey;
+  if (savedUrl && savedKey) connect();
+});
+</script>
+</body>
+</html>

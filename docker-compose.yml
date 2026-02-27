@@ -1,0 +1,12 @@
+services:
+  smsf-bot:
+    build: .
+    container_name: smsf-bot
+    restart: unless-stopped
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - SMSF_URL=https://smsf.of.ci
+      - SMSF_SECRET=2CjOWZiG3d2YLT4P
+      - ALLOWED_CHAT_IDS=5253562355
+    volumes:
+      - ./data:/app/data
